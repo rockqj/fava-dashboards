@@ -88,6 +88,19 @@ class FavaDashboards(FavaExtensionBase):
         self.process_queries(ledger, panel)
         self.process_jinja2(ledger, panel)
         self.sanitize_panel(ledger, panel)
+    
+    def get_monthly_prices(self):
+        monthly_prices = {}
+        for price in self.ledger.all_entries_by_type.Price:
+            price_month = price.date.strftime("%Y-%m")
+            if price.currency in monthly_prices:
+                if price.amount.currency in monthly_prices[price.currency]:
+                    monthly_prices[price.currency][price.amount.currency][price_month] = price.amount.number
+                else:
+                    monthly_prices[price.currency][price.amount.currency] = {price_month: price.amount.number}
+            else:
+                monthly_prices[price.currency] = {price.amount.currency:{ price_month: price.amount.number }}
+        return monthly_prices
 
     def bootstrap(self, dashboard_id):
         operating_currencies = self.ledger.options["operating_currency"]
@@ -98,6 +111,7 @@ class FavaDashboards(FavaExtensionBase):
             "operatingCurrencies": operating_currencies,
             "ccy": operating_currencies[0],
             "commodities": commodities,
+            "prices": self.get_monthly_prices(),
         }
 
         config = self.read_dashboards_config()
